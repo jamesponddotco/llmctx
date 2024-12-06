@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"git.sr.ht/~jamesponddotco/llmctx/internal/meta"
+	"git.sr.ht/~jamesponddotco/llmctx/internal/render"
 )
 
 // Usage returns the usage information for the application.
@@ -25,6 +26,7 @@ VERSION:
 GLOBAL OPTIONS:
    --input value, -i value  the directory path to convert (defaults to current directory)
    --output value, -o value the output file path (defaults to stdout)
+   --claude, -c             output in Claude's XML format (defaults to false)
    --help, -h               show help
    --version, -v            print the version
 `
@@ -37,6 +39,7 @@ func Run(args []string) int {
 	var (
 		input   string
 		output  string
+		claude  bool
 		help    bool
 		version bool
 	)
@@ -46,6 +49,8 @@ func Run(args []string) int {
 	flags.StringVar(&input, "i", ".", "the directory path to convert")
 	flags.StringVar(&output, "output", "", "the output txt file path")
 	flags.StringVar(&output, "o", "", "the output txt file path")
+	flags.BoolVar(&claude, "claude", false, "output in Claude's XML format")
+	flags.BoolVar(&claude, "c", false, "output in Claude's XML format")
 	flags.BoolVar(&help, "help", false, "show help information")
 	flags.BoolVar(&help, "h", false, "show help information")
 	flags.BoolVar(&version, "version", false, "print the version")
@@ -94,7 +99,14 @@ func Run(args []string) int {
 		out = os.Stdout
 	}
 
-	if err := WalkDir(input, out); err != nil {
+	var format render.Formatter
+	if claude {
+		format = render.NewClaudeFormat()
+	} else {
+		format = render.NewPlainFormat()
+	}
+
+	if err := WalkDir(input, out, format); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 
 		return 1
@@ -105,8 +117,10 @@ func Run(args []string) int {
 
 // WalkDir traverses the given directory and writes its structure and file
 // contents to the provided io.Writer.
-func WalkDir(rootDir string, out io.Writer) error {
-	first := true
+func WalkDir(rootDir string, out io.Writer, format render.Formatter) error {
+	if err := format.WriteHeader(out); err != nil {
+		return fmt.Errorf("error writing header: %w", err)
+	}
 
 	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -128,19 +142,19 @@ func WalkDir(rootDir string, out io.Writer) error {
 				return fmt.Errorf("error reading file %s: %w", path, err)
 			}
 
-			if first {
-				first = false
-			} else {
-				fmt.Fprint(out, "----\n")
+			if err := format.WriteBody(out, relPath, content); err != nil {
+				return fmt.Errorf("error writing document body: %w", err)
 			}
-
-			fmt.Fprintf(out, "%s\n%s\n", relPath, string(content))
 		}
 
 		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("failed to walk through directory: %w", err)
+	}
+
+	if err := format.WriteFooter(out); err != nil {
+		return fmt.Errorf("error writing footer: %w", err)
 	}
 
 	return nil
