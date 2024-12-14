@@ -117,7 +117,7 @@ func Run(args []string) int {
 		}
 
 		defer func() {
-			if err := file.Close(); err != nil {
+			if err = file.Close(); err != nil {
 				fmt.Fprintf(os.Stderr, "error: %s\n", err)
 			}
 		}()
@@ -140,14 +140,12 @@ func Run(args []string) int {
 	)
 
 	if _, err := os.Stat(gitignorePath); err == nil && !ignoreGitignore {
-		m, err := gitignore.New(gitignorePath)
+		matcher, err = gitignore.New(gitignorePath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: %s\n", err)
 
 			return 1
 		}
-
-		matcher = m
 	}
 
 	if err := WalkDir(input, out, format, matcher, ignorePatterns, showHidden); err != nil {
@@ -195,7 +193,9 @@ func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gi
 		}
 
 		for _, pattern := range ignorePatterns {
-			matched, err := filepath.Match(pattern, relPath)
+			var matched bool
+
+			matched, err = filepath.Match(pattern, relPath)
 			if err != nil {
 				return fmt.Errorf("error matching pattern %s: %w", pattern, err)
 			}
@@ -220,12 +220,14 @@ func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gi
 		}
 
 		if !info.IsDir() {
-			content, err := os.ReadFile(path)
+			var content []byte
+
+			content, err = os.ReadFile(path)
 			if err != nil {
 				return fmt.Errorf("error reading file %s: %w", path, err)
 			}
 
-			if err := format.WriteBody(out, relPath, content); err != nil {
+			if err = format.WriteBody(out, relPath, content); err != nil {
 				return fmt.Errorf("error writing document body: %w", err)
 			}
 		}
@@ -236,7 +238,7 @@ func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gi
 		return fmt.Errorf("failed to walk through directory: %w", err)
 	}
 
-	if err := format.WriteFooter(out); err != nil {
+	if err = format.WriteFooter(out); err != nil {
 		return fmt.Errorf("error writing footer: %w", err)
 	}
 
