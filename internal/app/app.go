@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"git.sr.ht/~jamesponddotco/gitignore-go"
 	"git.sr.ht/~jamesponddotco/llmctx/internal/meta"
@@ -42,6 +43,7 @@ GLOBAL OPTIONS:
    --input value, -i value    the directory path to convert (defaults to current directory)
    --output value, -o value   the output file path (defaults to stdout)
    --claude, -c               output in Claude's XML format (defaults to false)
+   --show-hidden, -a          show hidden files and directories (defaults to false)
    --ignore value, -x value   patterns to ignore (can be repeated)
    --ignore-gitignore, -g     ignore .gitignore rules (defaults to false)
    --help, -h                 show help
@@ -55,6 +57,7 @@ GLOBAL OPTIONS:
 func Run(args []string) int {
 	var (
 		ignoreGitignore bool
+		showHidden      bool
 		ignorePatterns  stringSliceFlag
 		input           string
 		output          string
@@ -72,6 +75,8 @@ func Run(args []string) int {
 	flags.BoolVar(&claude, "c", false, "output in Claude's XML format")
 	flags.BoolVar(&ignoreGitignore, "ignore-gitignore", false, "ignore .gitignore rules")
 	flags.BoolVar(&ignoreGitignore, "g", false, "ignore .gitignore rules")
+	flags.BoolVar(&showHidden, "show-hidden", false, "show hidden files and directories")
+	flags.BoolVar(&showHidden, "a", false, "show hidden files and directories")
 	flags.Var(&ignorePatterns, "ignore", "patterns to ignore (can be repeated)")
 	flags.Var(&ignorePatterns, "x", "patterns to ignore (can be repeated)")
 	flags.BoolVar(&help, "help", false, "show help information")
@@ -145,7 +150,7 @@ func Run(args []string) int {
 		matcher = m
 	}
 
-	if err := WalkDir(input, out, format, matcher, ignorePatterns); err != nil {
+	if err := WalkDir(input, out, format, matcher, ignorePatterns, showHidden); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 
 		return 1
@@ -156,7 +161,7 @@ func Run(args []string) int {
 
 // WalkDir traverses the given directory and writes its structure and file
 // contents to the provided io.Writer.
-func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gitignore.File, ignorePatterns []string) error {
+func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gitignore.File, ignorePatterns []string, showHidden bool) error {
 	if err := format.WriteHeader(out); err != nil {
 		return fmt.Errorf("error writing header: %w", err)
 	}
@@ -173,6 +178,20 @@ func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gi
 		relPath, err := filepath.Rel(rootDir, path)
 		if err != nil {
 			return fmt.Errorf("error finding relative path: %w", err)
+		}
+
+		if !showHidden {
+			parts := strings.Split(relPath, string(filepath.Separator))
+
+			for _, part := range parts {
+				if strings.HasPrefix(part, ".") {
+					if info.IsDir() {
+						return filepath.SkipDir
+					}
+
+					return nil
+				}
+			}
 		}
 
 		for _, pattern := range ignorePatterns {
