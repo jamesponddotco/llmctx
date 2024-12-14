@@ -159,7 +159,7 @@ func Run(args []string) int {
 
 // WalkDir traverses the given directory and writes its structure and file
 // contents to the provided io.Writer.
-func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gitignore.File, ignorePatterns []string, showHidden bool) error {
+func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gitignore.File, ignorePatterns []string, showHidden bool) error { //nolint:gocognit,revive // TODO: refactor this function into its own internal package
 	if err := format.WriteHeader(out); err != nil {
 		return fmt.Errorf("error writing header: %w", err)
 	}
