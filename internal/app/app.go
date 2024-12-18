@@ -7,9 +7,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"git.sr.ht/~jamesponddotco/gitignore-go"
+	"git.sr.ht/~jamesponddotco/llmctx/internal/fscan"
 	"git.sr.ht/~jamesponddotco/llmctx/internal/meta"
 	"git.sr.ht/~jamesponddotco/llmctx/internal/render"
 	"git.sr.ht/~jamesponddotco/xstd-go/xstrings"
@@ -148,99 +148,25 @@ func Run(args []string) int {
 		}
 	}
 
-	if err := WalkDir(input, out, format, matcher, ignorePatterns, showHidden); err != nil {
+	dir := fscan.Directory{
+		Root:           input,
+		GitIgnore:      matcher,
+		IgnorePatterns: ignorePatterns,
+		ShowHidden:     showHidden,
+	}
+
+	collection, err := dir.Scan()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+
+		return 1
+	}
+
+	if err = render.WriteOutput(out, collection, format); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 
 		return 1
 	}
 
 	return 0
-}
-
-// WalkDir traverses the given directory and writes its structure and file
-// contents to the provided io.Writer.
-func WalkDir(rootDir string, out io.Writer, format render.Formatter, matcher *gitignore.File, ignorePatterns []string, showHidden bool) error { //nolint:gocognit,revive // TODO: refactor this function into its own internal package
-	if err := format.WriteHeader(out); err != nil {
-		return fmt.Errorf("error writing header: %w", err)
-	}
-
-	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return fmt.Errorf("error walking the path %s: %w", path, err)
-		}
-
-		if path == rootDir {
-			return nil
-		}
-
-		relPath, err := filepath.Rel(rootDir, path)
-		if err != nil {
-			return fmt.Errorf("error finding relative path: %w", err)
-		}
-
-		if !showHidden {
-			parts := strings.Split(relPath, string(filepath.Separator))
-
-			for _, part := range parts {
-				if strings.HasPrefix(part, ".") {
-					if info.IsDir() {
-						return filepath.SkipDir
-					}
-
-					return nil
-				}
-			}
-		}
-
-		for _, pattern := range ignorePatterns {
-			var matched bool
-
-			matched, err = filepath.Match(pattern, relPath)
-			if err != nil {
-				return fmt.Errorf("error matching pattern %s: %w", pattern, err)
-			}
-
-			if matched {
-				if info.IsDir() {
-					return filepath.SkipDir
-				}
-
-				return nil
-			}
-		}
-
-		if matcher != nil {
-			if matcher.Match(relPath) {
-				if info.IsDir() {
-					return filepath.SkipDir
-				}
-
-				return nil
-			}
-		}
-
-		if !info.IsDir() {
-			var content []byte
-
-			content, err = os.ReadFile(path)
-			if err != nil {
-				return fmt.Errorf("error reading file %s: %w", path, err)
-			}
-
-			if err = format.WriteBody(out, relPath, content); err != nil {
-				return fmt.Errorf("error writing document body: %w", err)
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("failed to walk through directory: %w", err)
-	}
-
-	if err = format.WriteFooter(out); err != nil {
-		return fmt.Errorf("error writing footer: %w", err)
-	}
-
-	return nil
 }
