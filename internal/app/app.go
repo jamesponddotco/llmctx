@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"git.sr.ht/~jamesponddotco/errxit-go"
 	"git.sr.ht/~jamesponddotco/gitignore-go"
 	"git.sr.ht/~jamesponddotco/llmctx/internal/fscan"
 	"git.sr.ht/~jamesponddotco/llmctx/internal/meta"
@@ -41,7 +42,7 @@ GLOBAL OPTIONS:
 }
 
 // Run is the entry point for the application.
-func Run(args []string) int {
+func Run(args []string) error {
 	var (
 		ignoreGitignore bool
 		showHidden      bool
@@ -76,21 +77,22 @@ func Run(args []string) int {
 	}
 
 	if err := flags.Parse(args); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-
-		return 1
+		return &errxit.Error{
+			Err: err,
+			No:  1,
+		}
 	}
 
 	if help {
 		Usage(os.Stdout)
 
-		return 0
+		return nil
 	}
 
 	if version {
 		fmt.Fprintf(os.Stdout, "%s\n", meta.Version)
 
-		return 0
+		return nil
 	}
 
 	var out io.Writer
@@ -98,9 +100,10 @@ func Run(args []string) int {
 	if output != "" {
 		file, err := os.Create(output)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-
-			return 1
+			return &errxit.Error{
+				Err: err,
+				No:  1,
+			}
 		}
 
 		defer func() {
@@ -129,9 +132,10 @@ func Run(args []string) int {
 	if _, err := os.Stat(gitignorePath); err == nil && !ignoreGitignore {
 		matcher, err = gitignore.New(gitignorePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-
-			return 1
+			return &errxit.Error{
+				Err: err,
+				No:  1,
+			}
 		}
 	}
 
@@ -144,16 +148,18 @@ func Run(args []string) int {
 
 	collection, err := dir.Scan()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-
-		return 1
+		return &errxit.Error{
+			Err: err,
+			No:  1,
+		}
 	}
 
 	if err = render.WriteOutput(out, collection, format); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s\n", err)
-
-		return 1
+		return &errxit.Error{
+			Err: err,
+			No:  1,
+		}
 	}
 
-	return 0
+	return nil
 }
