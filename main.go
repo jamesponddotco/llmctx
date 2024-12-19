@@ -9,7 +9,9 @@ import (
 )
 
 func main() {
-	if err := app.Run(os.Args[1:]); err != nil {
+	cli := app.New(os.Args[1:])
+
+	if err := cli.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 
 		errxit.Exit(err)

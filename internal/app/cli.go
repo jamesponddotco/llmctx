@@ -16,33 +16,35 @@ import (
 	"git.sr.ht/~jamesponddotco/xstd-go/xflag"
 )
 
-// Usage returns the usage information for the application.
-func Usage(w io.Writer) {
-	text := `NAME:
-   %s - %s
+// CLI is the command line interface for the application.
+type CLI struct {
+	// Input is the path to the input directory.
+	Input string
 
-USAGE:
-   %s [global options]
+	// Output is the path to the output file.
+	Output string
 
-VERSION:
-   %s
+	// IgnorePatterns is a list of patterns to ignore when scanning.
+	IgnorePatterns []string
 
-GLOBAL OPTIONS:
-   --input value, -i value    the directory path to convert (defaults to current directory)
-   --output value, -o value   the output file path (defaults to stdout)
-   --claude, -c               output in Claude's XML format (defaults to false)
-   --show-hidden, -a          show hidden files and directories (defaults to false)
-   --ignore value, -x value   patterns to ignore (can be repeated)
-   --ignore-gitignore, -g     ignore .gitignore rules (defaults to false)
-   --help, -h                 show help
-   --version, -v              print the version
-`
+	// IgnoreGitignore tells the application to ignore the .gitignore file.
+	IgnoreGitignore bool
 
-	fmt.Fprintf(w, text, meta.Name, meta.Description, meta.Name, meta.Version)
+	// ShowHidden tells the application to show hidden files and directories.
+	ShowHidden bool
+
+	// Claude tells the application to output in Claude's XML format.
+	Claude bool
+
+	// Help tells the application to show the help message.
+	Help bool
+
+	// Version tells the application to show the version.
+	Version bool
 }
 
-// Run is the entry point for the application.
-func Run(args []string) error {
+// New parses the command line arguments and returns a new CLI instance.
+func New(args []string) CLI {
 	var (
 		ignoreGitignore bool
 		showHidden      bool
@@ -76,20 +78,29 @@ func Run(args []string) error {
 		Usage(os.Stderr)
 	}
 
-	if err := flags.Parse(args); err != nil {
-		return &errxit.Error{
-			Err: err,
-			No:  1,
-		}
-	}
+	flags.Parse(args) //nolint:errcheck // we can't return the error anyway, as we set flag.ExitOnError
 
-	if help {
+	return CLI{
+		Input:           input,
+		Output:          output,
+		IgnorePatterns:  ignorePatterns,
+		IgnoreGitignore: ignoreGitignore,
+		ShowHidden:      showHidden,
+		Claude:          claude,
+		Help:            help,
+		Version:         version,
+	}
+}
+
+// Run is the entry point for the application.
+func (c *CLI) Run() error {
+	if c.Help {
 		Usage(os.Stdout)
 
 		return nil
 	}
 
-	if version {
+	if c.Version {
 		fmt.Fprintf(os.Stdout, "%s\n", meta.Version)
 
 		return nil
@@ -97,8 +108,8 @@ func Run(args []string) error {
 
 	var out io.Writer
 
-	if output != "" {
-		file, err := os.Create(output)
+	if c.Output != "" {
+		file, err := os.Create(c.Output)
 		if err != nil {
 			return &errxit.Error{
 				Err: err,
@@ -118,7 +129,7 @@ func Run(args []string) error {
 	}
 
 	var format render.Formatter
-	if claude {
+	if c.Claude {
 		format = render.NewClaudeFormat()
 	} else {
 		format = render.NewPlainFormat()
@@ -126,10 +137,10 @@ func Run(args []string) error {
 
 	var (
 		matcher       *gitignore.File
-		gitignorePath = filepath.Join(input, ".gitignore")
+		gitignorePath = filepath.Join(c.Input, ".gitignore")
 	)
 
-	if _, err := os.Stat(gitignorePath); err == nil && !ignoreGitignore {
+	if _, err := os.Stat(gitignorePath); err == nil && !c.IgnoreGitignore {
 		matcher, err = gitignore.New(gitignorePath)
 		if err != nil {
 			return &errxit.Error{
@@ -140,10 +151,10 @@ func Run(args []string) error {
 	}
 
 	dir := fscan.Directory{
-		Root:           input,
+		Root:           c.Input,
 		GitIgnore:      matcher,
-		IgnorePatterns: ignorePatterns,
-		ShowHidden:     showHidden,
+		IgnorePatterns: c.IgnorePatterns,
+		ShowHidden:     c.ShowHidden,
 	}
 
 	collection, err := dir.Scan()
