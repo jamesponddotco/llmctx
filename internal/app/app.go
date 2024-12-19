@@ -12,21 +12,8 @@ import (
 	"git.sr.ht/~jamesponddotco/llmctx/internal/fscan"
 	"git.sr.ht/~jamesponddotco/llmctx/internal/meta"
 	"git.sr.ht/~jamesponddotco/llmctx/internal/render"
-	"git.sr.ht/~jamesponddotco/xstd-go/xstrings"
+	"git.sr.ht/~jamesponddotco/xstd-go/xflag"
 )
-
-// stringSliceFlag is a custom flag type that allows for repeated string flags.
-type stringSliceFlag []string
-
-func (s *stringSliceFlag) String() string {
-	return xstrings.JoinWithSeparator(", ", *s...)
-}
-
-func (s *stringSliceFlag) Set(value string) error {
-	*s = append(*s, value)
-
-	return nil
-}
 
 // Usage returns the usage information for the application.
 func Usage(w io.Writer) {
@@ -58,7 +45,7 @@ func Run(args []string) int {
 	var (
 		ignoreGitignore bool
 		showHidden      bool
-		ignorePatterns  stringSliceFlag
+		ignorePatterns  xflag.StringSlice
 		input           string
 		output          string
 		claude          bool
