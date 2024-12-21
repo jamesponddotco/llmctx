@@ -61,7 +61,9 @@ func (d *Directory) Scan() (*document.Collection, error) {
 		}
 
 		for _, pattern := range d.IgnorePatterns {
-			matched, err := filepath.Match(pattern, relPath)
+			var matched bool
+
+			matched, err = filepath.Match(pattern, relPath)
 			if err != nil {
 				return fmt.Errorf("error matching pattern %s: %w", pattern, err)
 			}
@@ -86,7 +88,9 @@ func (d *Directory) Scan() (*document.Collection, error) {
 		}
 
 		if !info.IsDir() {
-			content, err := os.ReadFile(path)
+			var content []byte
+
+			content, err = os.ReadFile(path)
 			if err != nil {
 				return fmt.Errorf("error reading file %s: %w", path, err)
 			}
