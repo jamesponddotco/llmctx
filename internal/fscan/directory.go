@@ -47,44 +47,17 @@ func (d *Directory) Scan() (*document.Collection, error) {
 			return fmt.Errorf("error finding relative path: %w", err)
 		}
 
-		if !d.ShowHidden {
-			parts := strings.Split(relPath, string(filepath.Separator))
-			for _, part := range parts {
-				if strings.HasPrefix(part, ".") {
-					if info.IsDir() {
-						return filepath.SkipDir
-					}
-
-					return nil
-				}
-			}
+		skip, err := d.shouldSkip(relPath)
+		if err != nil {
+			return err
 		}
 
-		for _, pattern := range d.IgnorePatterns {
-			var matched bool
-
-			matched, err = filepath.Match(pattern, relPath)
-			if err != nil {
-				return fmt.Errorf("error matching pattern %s: %w", pattern, err)
+		if skip {
+			if info.IsDir() {
+				return filepath.SkipDir
 			}
 
-			if matched {
-				if info.IsDir() {
-					return filepath.SkipDir
-				}
-
-				return nil
-			}
-		}
-
-		if d.GitIgnore != nil {
-			if d.GitIgnore.Match(relPath) {
-				if info.IsDir() {
-					return filepath.SkipDir
-				}
-
-				return nil
-			}
+			return nil
 		}
 
 		if !info.IsDir() {
@@ -105,4 +78,36 @@ func (d *Directory) Scan() (*document.Collection, error) {
 	}
 
 	return collection, nil
+}
+
+// shouldSkip determines if a file or directory should be skipped based on the
+// configured rules.
+func (d *Directory) shouldSkip(relPath string) (bool, error) {
+	if !d.ShowHidden {
+		parts := strings.Split(relPath, string(filepath.Separator))
+		for _, part := range parts {
+			if strings.HasPrefix(part, ".") {
+				return true, nil
+			}
+		}
+	}
+
+	for _, pattern := range d.IgnorePatterns {
+		matched, err := filepath.Match(pattern, relPath)
+		if err != nil {
+			return false, fmt.Errorf("error matching pattern %s: %w", pattern, err)
+		}
+
+		if matched {
+			return true, nil
+		}
+	}
+
+	if d.GitIgnore != nil {
+		if d.GitIgnore.Match(relPath) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
