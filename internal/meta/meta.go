@@ -6,7 +6,7 @@ const (
 	Name = "llmctx"
 
 	// Version is the version of the application.
-	Version = "0.1.0"
+	Version = "1.0.0"
 
 	// Description is the description of the application.
 	Description = "convert the content of a directory into context for LLMs"
