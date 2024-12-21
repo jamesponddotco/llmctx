@@ -2,7 +2,7 @@ module git.sr.ht/~jamesponddotco/llmctx
 
 go 1.23
 
-require git.sr.ht/~jamesponddotco/xstd-go v0.10.0
+require git.sr.ht/~jamesponddotco/xstd-go v0.11.1
 
 require git.sr.ht/~jamesponddotco/gitignore-go v1.0.0
 

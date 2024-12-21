@@ -4,3 +4,7 @@ git.sr.ht/~jamesponddotco/gitignore-go v1.0.0 h1:LWkOl4GxTrdUflN0yNiWurvIBzS/KQp
 git.sr.ht/~jamesponddotco/gitignore-go v1.0.0/go.mod h1:bCuKIPy1A0fvgPLTEeut0SmygPVw5TOD4CISgf5x6SY=
 git.sr.ht/~jamesponddotco/xstd-go v0.10.0 h1:B4D9MzdETY/DTCWgOJM36Y9FYy+hKnUooMi8PHyLRQc=
 git.sr.ht/~jamesponddotco/xstd-go v0.10.0/go.mod h1:2ImaAMHwlIUZQG4RDk7utC9ZG5HL+l6uQ3pwMjq1Q5s=
+git.sr.ht/~jamesponddotco/xstd-go v0.11.0 h1:T0xzFdVFrf2716DGW7MrBXsP/AFS4kA0XFelQgJVX94=
+git.sr.ht/~jamesponddotco/xstd-go v0.11.0/go.mod h1:2ImaAMHwlIUZQG4RDk7utC9ZG5HL+l6uQ3pwMjq1Q5s=
+git.sr.ht/~jamesponddotco/xstd-go v0.11.1 h1:cg+YBzo9LMii2ogvRjz/0KpHw8s64ULDh9Fw6z3ynuE=
+git.sr.ht/~jamesponddotco/xstd-go v0.11.1/go.mod h1:2ImaAMHwlIUZQG4RDk7utC9ZG5HL+l6uQ3pwMjq1Q5s=
