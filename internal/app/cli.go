@@ -46,33 +46,27 @@ type CLI struct {
 // New parses the command line arguments and returns a new CLI instance.
 func New(args []string) CLI {
 	var (
-		ignoreGitignore bool
-		showHidden      bool
-		ignorePatterns  xflag.StringSlice
-		input           string
-		output          string
-		claude          bool
-		help            bool
-		version         bool
+		cli            CLI
+		ignorePatterns xflag.StringSlice
 	)
 
 	flags := flag.NewFlagSet(meta.Name, flag.ExitOnError)
-	flags.StringVar(&input, "input", ".", "the directory path to convert")
-	flags.StringVar(&input, "i", ".", "the directory path to convert")
-	flags.StringVar(&output, "output", "", "the output txt file path")
-	flags.StringVar(&output, "o", "", "the output txt file path")
-	flags.BoolVar(&claude, "claude", false, "output in Claude's XML format")
-	flags.BoolVar(&claude, "c", false, "output in Claude's XML format")
-	flags.BoolVar(&ignoreGitignore, "ignore-gitignore", false, "ignore .gitignore rules")
-	flags.BoolVar(&ignoreGitignore, "g", false, "ignore .gitignore rules")
-	flags.BoolVar(&showHidden, "show-hidden", false, "show hidden files and directories")
-	flags.BoolVar(&showHidden, "a", false, "show hidden files and directories")
+	flags.StringVar(&cli.Input, "input", ".", "the directory path to convert")
+	flags.StringVar(&cli.Input, "i", ".", "the directory path to convert")
+	flags.StringVar(&cli.Output, "output", "", "the output txt file path")
+	flags.StringVar(&cli.Output, "o", "", "the output txt file path")
+	flags.BoolVar(&cli.Claude, "claude", false, "output in Claude's XML format")
+	flags.BoolVar(&cli.Claude, "c", false, "output in Claude's XML format")
+	flags.BoolVar(&cli.IgnoreGitignore, "ignore-gitignore", false, "ignore .gitignore rules")
+	flags.BoolVar(&cli.IgnoreGitignore, "g", false, "ignore .gitignore rules")
+	flags.BoolVar(&cli.ShowHidden, "show-hidden", false, "show hidden files and directories")
+	flags.BoolVar(&cli.ShowHidden, "a", false, "show hidden files and directories")
 	flags.Var(&ignorePatterns, "ignore", "patterns to ignore (can be repeated)")
 	flags.Var(&ignorePatterns, "x", "patterns to ignore (can be repeated)")
-	flags.BoolVar(&help, "help", false, "show help information")
-	flags.BoolVar(&help, "h", false, "show help information")
-	flags.BoolVar(&version, "version", false, "print the version")
-	flags.BoolVar(&version, "v", false, "print the version")
+	flags.BoolVar(&cli.Help, "help", false, "show help information")
+	flags.BoolVar(&cli.Help, "h", false, "show help information")
+	flags.BoolVar(&cli.Version, "version", false, "print the version")
+	flags.BoolVar(&cli.Version, "v", false, "print the version")
 
 	flags.Usage = func() {
 		Usage(os.Stderr)
@@ -80,16 +74,9 @@ func New(args []string) CLI {
 
 	flags.Parse(args) //nolint:errcheck // we can't return the error anyway, as we set flag.ExitOnError
 
-	return CLI{
-		Input:           input,
-		Output:          output,
-		IgnorePatterns:  ignorePatterns,
-		IgnoreGitignore: ignoreGitignore,
-		ShowHidden:      showHidden,
-		Claude:          claude,
-		Help:            help,
-		Version:         version,
-	}
+	cli.IgnorePatterns = ignorePatterns
+
+	return cli
 }
 
 // Run is the entry point for the application.
