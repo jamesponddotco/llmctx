@@ -92,8 +92,10 @@ func (d *Directory) shouldSkip(relPath string) (bool, error) {
 		}
 	}
 
+	basename := filepath.Base(relPath)
+
 	for _, pattern := range d.IgnorePatterns {
-		matched, err := filepath.Match(pattern, relPath)
+		matched, err := filepath.Match(pattern, basename)
 		if err != nil {
 			return false, fmt.Errorf("error matching pattern %s: %w", pattern, err)
 		}
